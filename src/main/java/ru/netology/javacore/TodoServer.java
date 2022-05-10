@@ -23,41 +23,44 @@ public class TodoServer {
 
         System.out.println("Starting server at " + port + "...");
 
-        while (true) {
-            try (ServerSocket serverSocket = new ServerSocket(port);
-                 Socket clientSocket = serverSocket.accept(); // ждем подключения
-                 PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-                 BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            while (true) {
+                try (Socket clientSocket = serverSocket.accept(); // ждем подключения
+                        PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+                        BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
 
-                String jsonTask = in.readLine();
-                Map<String, String> map = jsonTo(jsonTask);
+                    String jsonTask = in.readLine();
+                    Map<String, String> map = jsonToMap(jsonTask);
 
-                String action = "", task = "";
-                for (Map.Entry<String, String> entry : map.entrySet()) {
-                    String key = entry.getKey();
-                    String value = entry.getValue();
-                    if (key.equals("type")) {
-                        action = value;
-                    } else {
-                        task = value;
+                    String action = "", task = "";
+                    for (Map.Entry<String, String> entry : map.entrySet()) {
+                        String key = entry.getKey();
+                        String value = entry.getValue();
+                        if (key.equals("type")) {
+                            action = value;
+                        } else {
+                            task = value;
+                        }
                     }
+
+                    if (action.equals("ADD")) {
+                        todos.addTask(task);
+                    } else if (action.equals("REMOVE")) {
+                        todos.removeTask(task);
+                    }
+
+                    out.println(todos.getAllTasks());
+
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-
-                if (action.equals("ADD")) {
-                    todos.addTask(task);
-                } else if (action.equals("REMOVE")) {
-                    todos.removeTask(task);
-                }
-
-                out.println(todos.getAllTasks());
-
-            } catch (IOException e) {
-                e.printStackTrace();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
-    private static Map<String, String> jsonTo(String jsonText) {
+    private static Map<String, String> jsonToMap(String jsonText) {
 
         Type mapType = new TypeToken<Map<String, String>>() {}.getType();
         GsonBuilder builder = new GsonBuilder();
